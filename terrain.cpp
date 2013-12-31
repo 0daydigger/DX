@@ -142,15 +142,24 @@ int Terrain::pickTriangle(HWND hwnd)
 	_device->GetTransform(D3DTS_WORLD, &matWorld);
 	_device->GetTransform(D3DTS_VIEW, &matView);
 	
-	// Use inverse of matrix
-	D3DXVECTOR3 rayPos(pt.x, pt.y,0); // near-plane position
-	D3DXVECTOR3 rayDir(pt.x, pt.x,1); // far-plane position
-	D3DXVec3Unproject(&rayPos,&rayPos,&vp,&matProj,&matView,&matWorld);
-	D3DXVec3Unproject(&rayDir,&rayDir,&vp,&matProj,&matView,&matWorld);
-	rayDir -= rayPos; // make a direction from the 2 positions
-	D3DXVec3Normalize(&rayDir,&rayDir); // don't know if this is necessary.
-	// Transform ray origin and direction by inv matrix
-	//
+	//Transform cursor position to view space
+    float x = (2.0f*pt.x/vp.Width - 1.0f) / matProj(0,0);
+    float y = (-2.0f*pt.y/vp.Height + 1.0f) / matProj(1,1);
+
+
+    D3DXVECTOR3 rayOrigin(0.0f, 0.0f,0.0f); // near-plane position
+    D3DXVECTOR3 rayDir(x, y, 1.0f); // far-plane position
+
+    D3DXMATRIX matInvView;
+
+    D3DXMatrixInverse(&matInvView, 0, &matView);
+
+    D3DXVECTOR3 rayOriginW, rayDirW;
+
+    // Transform picking ray to world space.
+    D3DXVec3TransformCoord(&rayOriginW, &rayOrigin, &matInvView);
+    D3DXVec3TransformNormal(&rayDirW, &rayDir, &matInvView);
+    D3DXVec3Normalize(&rayDirW, &rayDirW);
 			
 	float _u,_v,_w;
 	
@@ -170,7 +179,7 @@ int Terrain::pickTriangle(HWND hwnd)
 		p2.z = vInfo[tInfo[i].third].z;
 
 		//初始化工作完成下面判断相交
-		if (D3DXIntersectTri(&p0,&p1,&p2,&rayPos,&rayDir,&_u,&_v,&_w) )
+		if (D3DXIntersectTri(&p0,&p1,&p2,&rayOriginW,&rayDirW,&_u,&_v,&_w) )
 		{
 			char dbgInfo[512] = {0};
 			sprintf(dbgInfo,"The crossed tri is %d, the info is first:%d,second:%d,thrid:%d\n",i,
