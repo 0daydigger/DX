@@ -102,6 +102,18 @@ TriangleInfo Terrain::getTriangleInfo(int index)
 {
 	return tInfo[index];
 }
+bool Terrain::changeHeight(int triangleIndex)
+{
+	TriangleInfo triangle = tInfo[triangleIndex];
+	//获得了三角形的信息之后，就要修改点的信息了。
+	
+	TerrainVertex* v = 0;
+	_vb->Lock(0, 0, (void**)&v, 0);
+	if ( triangle.first >= 0 )
+	v[triangle.first]._y += sin(D3DX_PI/2);
+	_vb->Unlock();
+	return true;
+}
 int Terrain::pickTriangle(HWND hwnd)
 {
 	
@@ -136,7 +148,6 @@ int Terrain::pickTriangle(HWND hwnd)
 	
 	for(int i = 0 ; i < _numTriangles; i++)
 	{			
-		OutputDebugString("Init\n");
 		D3DXVECTOR3 p0,p1,p2;
 		p0.x = vInfo[tInfo[i].first].x;
 		p0.y = vInfo[tInfo[i].first].y;
@@ -253,9 +264,9 @@ bool Terrain::computeIndices()
 		{
 			indices[baseIndex]     =   i   * _numVertsPerRow + j;
 			indices[baseIndex + 1] =   i   * _numVertsPerRow + j + 1;
-			indices[baseIndex + 2] = (i+1) * _numVertsPerRow + j;
+			indices[baseIndex + 2] =  (i+1) * _numVertsPerRow + j;
 
-			tInfo[tInfoIndex].first = i   * _numVertsPerRow + j;
+			tInfo[tInfoIndex].first =  i   * _numVertsPerRow + j;
 			tInfo[tInfoIndex].second = i   * _numVertsPerRow + j + 1;
 			tInfo[tInfoIndex].third = (i+1) * _numVertsPerRow + j;
 			tInfoIndex++;

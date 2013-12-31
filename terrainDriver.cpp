@@ -23,7 +23,7 @@ IDirect3DDevice9* Device = 0;
 
 const int Width  = 640;
 const int Height = 480;
-
+int triIndex = -1;
 Terrain* TheTerrain = 0;
 //TODO:在这里改成fly模式
 Camera   TheCamera(Camera::AIRCRAFT);
@@ -179,21 +179,30 @@ LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		if( wParam == VK_ESCAPE )
 			::DestroyWindow(hwnd);
 		break;
-
-	case WM_LBUTTONDOWN:
-		int triIndex = TheTerrain->pickTriangle(hwnd);
-		if ( triIndex )
+	case WM_MOUSEMOVE:
+		if ( wParam & MK_LBUTTON )
 		{
-			MessageBox(0,"GOT","GOT",0);
-			TriangleInfo destTri = TheTerrain->getTriangleInfo(triIndex);
-			VerticesInfo destVer = TheTerrain->getVerticesInfo(destTri.first);
-			D3DXVECTOR3 pos(destVer.x,destVer.y,destVer.z);
-			TheCamera.setPosition(&pos);
-			//在这里修改地形高度daze！
+			if ( triIndex != -1 )
+			TheTerrain->changeHeight(triIndex);
 		}
-		else
-			MessageBox(0,"NO","NO",0);
+		break;
+	case WM_LBUTTONDOWN:
+		triIndex = TheTerrain->pickTriangle(hwnd);
+	/*	if ( triIndex != -1 )
+		{
+			OutputDebugString("Gotcha\n");
+			TriangleInfo tri;
+			VerticesInfo ver;
+			tri = TheTerrain->getTriangleInfo(triIndex);
+			ver = TheTerrain->getVerticesInfo(tri.first);
+			D3DXVECTOR3 pos(ver.x,ver.y,ver.z);
+			TheCamera.setPosition(&pos);
+		}*/
 		break; 
+	case WM_LBUTTONUP:
+		triIndex = -1;
+		OutputDebugString("triIndex = -1\n");
+		break;
 	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }

@@ -24,9 +24,9 @@ struct Ray
 	};
 struct TriangleInfo
 {
-	long int first;
-	long int second;
-	long int third;
+	int first;
+    int second;
+	int third;
 };
 struct VerticesInfo
 {
@@ -59,7 +59,8 @@ public:
 	bool  genTexture(D3DXVECTOR3* directionToLight);
 	bool  draw(D3DXMATRIX* world, bool drawTris);
 	int	  getTriangleNumber();
-	int  pickTriangle(HWND hwnd);
+	int   pickTriangle(HWND hwnd);
+	bool  changeHeight(int triangleIndex);
 	VerticesInfo getVerticesInfo(int index);
 	TriangleInfo getTriangleInfo(int index);
 private:
