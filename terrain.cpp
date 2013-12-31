@@ -106,11 +106,19 @@ bool Terrain::changeHeight(int triangleIndex)
 {
 	TriangleInfo triangle = tInfo[triangleIndex];
 	//获得了三角形的信息之后，就要修改点的信息了。
+	char dbgInfo[512] = {0};
+	sprintf(dbgInfo,"The modifying tri is %d, the info is first:%d,second:%d,thrid:%d\n",triangleIndex,
+		tInfo[triangleIndex].first,tInfo[triangleIndex].second,tInfo[triangleIndex].third);
+	OutputDebugString(dbgInfo);
 	
 	TerrainVertex* v = 0;
 	_vb->Lock(0, 0, (void**)&v, 0);
-	if ( triangle.first >= 0 )
-	v[triangle.first]._y += sin(D3DX_PI/2);
+	v[triangle.first]._y += sin(D3DX_PI/4);
+	vInfo[triangle.first].y = v[triangle.first]._y;
+	v[triangle.second]._y += sin(D3DX_PI/6);
+	vInfo[triangle.second].y = v[triangle.first]._y;
+	v[triangle.third]._y += sin(D3DX_PI/6);
+	vInfo[triangle.third].y = v[triangle.first]._y;
 	_vb->Unlock();
 	return true;
 }
@@ -164,6 +172,10 @@ int Terrain::pickTriangle(HWND hwnd)
 		//初始化工作完成下面判断相交
 		if (D3DXIntersectTri(&p0,&p1,&p2,&rayPos,&rayDir,&_u,&_v,&_w) )
 		{
+			char dbgInfo[512] = {0};
+			sprintf(dbgInfo,"The crossed tri is %d, the info is first:%d,second:%d,thrid:%d\n",i,
+				tInfo[i].first,tInfo[i].second,tInfo[i].third);
+			OutputDebugString(dbgInfo);
 			return i;
 		}
 	} 
@@ -262,6 +274,8 @@ bool Terrain::computeIndices()
 	{
 		for(int j = 0; j < _numCellsPerRow; j++)
 		{
+			char dbg[512] = {0};
+
 			indices[baseIndex]     =   i   * _numVertsPerRow + j;
 			indices[baseIndex + 1] =   i   * _numVertsPerRow + j + 1;
 			indices[baseIndex + 2] =  (i+1) * _numVertsPerRow + j;
@@ -269,6 +283,11 @@ bool Terrain::computeIndices()
 			tInfo[tInfoIndex].first =  i   * _numVertsPerRow + j;
 			tInfo[tInfoIndex].second = i   * _numVertsPerRow + j + 1;
 			tInfo[tInfoIndex].third = (i+1) * _numVertsPerRow + j;
+
+			sprintf(dbg,"The %d tri: first:%d,second:%d,thrid:%d\n",tInfoIndex,
+				tInfo[tInfoIndex].first,tInfo[tInfoIndex].second,tInfo[tInfoIndex].third);
+			OutputDebugString(dbg);
+
 			tInfoIndex++;
 
 			indices[baseIndex + 3] = (i+1) * _numVertsPerRow + j;
@@ -278,6 +297,11 @@ bool Terrain::computeIndices()
 			tInfo[tInfoIndex].first = (i+1) * _numVertsPerRow + j;
 			tInfo[tInfoIndex].second =  i   * _numVertsPerRow + j + 1;
 			tInfo[tInfoIndex].third = (i+1) * _numVertsPerRow + j + 1;
+
+			sprintf(dbg,"The %d tri: first:%d,second:%d,thrid:%d\n",tInfoIndex,
+			tInfo[tInfoIndex].first,tInfo[tInfoIndex].second,tInfo[tInfoIndex].third);
+			OutputDebugString(dbg);
+
 			tInfoIndex++;
 
 			// next quad
