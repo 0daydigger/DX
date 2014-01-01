@@ -11,11 +11,21 @@
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include "d3dUtility.h"
-
+#include "Terrian\resource.h"
 // vertex formats
 const DWORD d3d::Vertex::FVF = D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_TEX1;
 
+void InitSetEditMenuRadio(HWND hwnd,int pos1,int begin,int end,int dest)
+{
+	//pos1:编辑下拉表中的位置
+	HMENU hMenu = GetMenu(hwnd); //窗口主菜单
+	HMENU subMenu1 = GetSubMenu(hMenu,1); //编辑
 
+	HMENU subMenu2 = GetSubMenu(subMenu1,pos1);
+	//subMenu2就是contain了
+	CheckMenuRadioItem(subMenu2,begin,end,dest,MF_BYPOSITION);
+
+}
 bool d3d::InitD3D(
 	HINSTANCE hInstance,
 	int width, int height,
@@ -50,13 +60,20 @@ bool d3d::InitD3D(
 	hwnd = ::CreateWindow("Direct3D9App", "Direct3D9App", 
 		WS_EX_TOPMOST,
 		0, 0, width, height,
-		0 /*parent hwnd*/, 0 /* menu */, hInstance, 0 /*extra*/); 
+		0 /*parent hwnd*/, LoadMenu(hInstance,MAKEINTRESOURCE(IDR_MENU1)) /* menu */, hInstance, 0 /*extra*/); 
 
 	if( !hwnd )
 	{
 		::MessageBox(0, "CreateWindow() - FAILED", 0, 0);
 		return false;
 	}
+	//在这里设置菜单默认状态
+	//高度为增加
+	InitSetEditMenuRadio(hwnd,1,0,1,0);
+	//不选择纹理
+	InitSetEditMenuRadio(hwnd,0,0,2,2);
+	//不改变物体
+	InitSetEditMenuRadio(hwnd,2,0,3,3);
 
 	::ShowWindow(hwnd, SW_SHOW);
 	::UpdateWindow(hwnd);

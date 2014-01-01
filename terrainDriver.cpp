@@ -14,7 +14,7 @@
 #include "terrain.h"
 #include "camera.h"
 #include "fps.h"
-
+#include "Terrian\resource.h"
 //
 // Globals
 //
@@ -44,7 +44,7 @@ bool Setup()
 	/* 
 		加载地形，加载的时候读入地形高度，此时没有绘制。
 	*/
-	TheTerrain = new Terrain(Device, "e:\\coastMountain64.raw", 64, 64, 10, 0.5f);
+	TheTerrain = new Terrain(Device, "E:\\Class\\Direct3DX\\Terrain\\heightmap1.raw", 256, 256, 5, 0.5f);
 	
 	TheTerrain->genTexture(&lightDirection);
 
@@ -163,7 +163,35 @@ bool Display(float timeDelta)
 	}
 	return true;
 }
+void setEditMenuRadio(HWND hwnd,int pos1,int begin,int end,int dest)
+{
+	//pos1:编辑下拉表中的位置
+	HMENU hMenu = GetMenu(hwnd); //窗口主菜单
+	HMENU subMenu1 = GetSubMenu(hMenu,1); //编辑
 
+	HMENU subMenu2 = GetSubMenu(subMenu1,pos1);
+	//subMenu2就是contain了
+	CheckMenuRadioItem(subMenu2,begin,end,dest,MF_BYPOSITION);
+
+}
+bool getEditMenuCheckedState(HWND hwnd,int pos1,int dest)
+{
+	//第二个参数传过来的是INDENTIFIER
+	MENUITEMINFO info;
+	info.cbSize = sizeof(MENUITEMINFO);
+	info.fMask = MIIM_STATE;
+	//pos1:编辑下拉表中的位置
+	HMENU hMenu = GetMenu(hwnd); //窗口主菜单
+	HMENU subMenu1 = GetSubMenu(hMenu,1); //编辑
+
+	HMENU subMenu2 = GetSubMenu(subMenu1,pos1);
+	//subMenu2就是contain了
+	GetMenuItemInfo(subMenu2,dest,true,&info);
+	if (info.fState & MF_CHECKED )
+		return true;
+	else
+		return false;
+}
 //
 // WndProc
 //
@@ -182,27 +210,66 @@ LRESULT CALLBACK d3d::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	case WM_MOUSEMOVE:
 		if ( wParam & MK_LBUTTON )
 		{
-			if ( triIndex != -1 )
-			TheTerrain->changeHeight(triIndex);
+			if(getEditMenuCheckedState(hwnd,1,0) ) //如果增加高度被选中了
+				if ( triIndex != -1 )
+				TheTerrain->changeHeight(triIndex);
+
+			if(getEditMenuCheckedState(hwnd,1,1) ) //平滑
+				if ( triIndex != -1 )
+				TheTerrain->averageHeight(triIndex);
 		}
 		break;
 	case WM_LBUTTONDOWN:
 		triIndex = TheTerrain->pickTriangle(hwnd);
-	/*	if ( triIndex != -1 )
-		{
-			OutputDebugString("Gotcha\n");
-			TriangleInfo tri;
-			VerticesInfo ver;
-			tri = TheTerrain->getTriangleInfo(triIndex);
-			ver = TheTerrain->getVerticesInfo(tri.first);
-			D3DXVECTOR3 pos(ver.x,ver.y,ver.z);
-			TheCamera.setPosition(&pos);
-		}*/
 		break; 
 	case WM_LBUTTONUP:
 		triIndex = -1;
 		OutputDebugString("triIndex = -1\n");
 		break;
+	case WM_COMMAND: //菜单消息响应
+		switch(LOWORD(wParam))
+		{
+			//文件-退出
+			case ID_40005:
+				PostQuitMessage(0);
+				break;
+			//关于
+			case ID_40009:
+				MessageBox(0,"关于","About",0);
+				break;
+
+			//思路：用LoadMenu加载之后获得菜单句柄后set
+			//编辑1-纹理0
+			case ID_40007: //纹理0-选择纹理1 0
+				setEditMenuRadio(hwnd,0,0,2,0);
+				break;
+			case ID_40008: //纹理0-选择纹理2 1
+				setEditMenuRadio(hwnd,0,0,2,1);
+				break;
+			case ID_40010: //纹理0-不选择纹理 2
+				setEditMenuRadio(hwnd,0,0,2,2);
+				break;
+			case ID_40012: //高度1-增加0
+				setEditMenuRadio(hwnd,1,0,1,0);
+				break;
+			case ID_40013: //高度1-平滑1
+				setEditMenuRadio(hwnd,1,0,1,1);
+				break;
+			//编辑1-物体2
+			case ID_40015: //编辑1-物体2-增加0,range:0-3
+				setEditMenuRadio(hwnd,2,0,3,0);
+				break;
+			case ID_40016://编辑1-物体2-删除1,range:0-3
+				setEditMenuRadio(hwnd,2,0,3,1);
+				break;
+			case ID_40017://编辑1-物体2-移动2,range:0-3
+				setEditMenuRadio(hwnd,2,0,3,2);
+				break;
+			case ID_40018://编辑1-物体2-不改变3,range:0-3
+				setEditMenuRadio(hwnd,2,0,3,3);
+				break;
+
+		}
 	}
 	return ::DefWindowProc(hwnd, msg, wParam, lParam);
 }

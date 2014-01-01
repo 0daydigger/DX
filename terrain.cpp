@@ -102,6 +102,58 @@ TriangleInfo Terrain::getTriangleInfo(int index)
 {
 	return tInfo[index];
 }
+bool Terrain::averageHeight(int triangleIndex)
+{
+	TriangleInfo triangle = tInfo[triangleIndex];
+	//获得了三角形的信息之后，就要修改点的信息了。
+	char dbgInfo[512] = {0};
+	sprintf(dbgInfo,"The modifying tri is %d, the info is first:%d,second:%d,thrid:%d\n",triangleIndex,
+		tInfo[triangleIndex].first,tInfo[triangleIndex].second,tInfo[triangleIndex].third);
+	OutputDebugString(dbgInfo);
+	int theHighestPoint = 0; //最高的那个点
+	if (vInfo[triangle.first].y >= vInfo[triangle.second].y && vInfo[triangle.first].y >= vInfo[triangle.third].y)
+	{
+		theHighestPoint = triangle.first;
+		OutputDebugString("The Highest Point is 1\n");
+	}
+	else if (vInfo[triangle.second].y >= vInfo[triangle.first].y && vInfo[triangle.second].y >= vInfo[triangle.third].y)
+	{
+		theHighestPoint = triangle.second;
+		OutputDebugString("The Highest Point is 2\n");
+	}
+	else if (vInfo[triangle.third].y >= vInfo[triangle.second].y && vInfo[triangle.third].y >= vInfo[triangle.third].y )
+	{
+		theHighestPoint = triangle.third;
+		OutputDebugString("The Highest Point is 3\n");
+	}
+	TerrainVertex* v = 0;
+	_vb->Lock(0, 0, (void**)&v, 0);
+	if ( theHighestPoint == triangle.first )
+	{
+		v[triangle.first]._y = ( v[triangle.second]._y + v[triangle.third]._y ) / 2.0f;
+		vInfo[triangle.first].y = v[triangle.first]._y;
+	}
+	if ( theHighestPoint == triangle.second )
+	{
+		v[triangle.second]._y = ( v[triangle.first]._y + v[triangle.third]._y ) / 2.0f;
+		vInfo[triangle.second].y = v[triangle.second]._y;
+	}
+	if ( theHighestPoint == triangle.third)
+	{
+		v[triangle.third]._y = ( v[triangle.second]._y + v[triangle.first]._y ) / 2.0f;
+		vInfo[triangle.third].y = v[triangle.third]._y;
+	}
+	/*
+	v[triangle.first]._y += sin(D3DX_PI/4);
+	vInfo[triangle.first].y = v[triangle.first]._y;
+	v[triangle.second]._y += sin(D3DX_PI/6);
+	vInfo[triangle.second].y = v[triangle.first]._y;
+	v[triangle.third]._y += sin(D3DX_PI/6);
+	vInfo[triangle.third].y = v[triangle.first]._y;
+	*/
+	_vb->Unlock();
+	return true;
+}
 bool Terrain::changeHeight(int triangleIndex)
 {
 	TriangleInfo triangle = tInfo[triangleIndex];
@@ -292,11 +344,11 @@ bool Terrain::computeIndices()
 			tInfo[tInfoIndex].first =  i   * _numVertsPerRow + j;
 			tInfo[tInfoIndex].second = i   * _numVertsPerRow + j + 1;
 			tInfo[tInfoIndex].third = (i+1) * _numVertsPerRow + j;
-
+#ifdef ONDBG
 			sprintf(dbg,"The %d tri: first:%d,second:%d,thrid:%d\n",tInfoIndex,
 				tInfo[tInfoIndex].first,tInfo[tInfoIndex].second,tInfo[tInfoIndex].third);
 			OutputDebugString(dbg);
-
+#endif
 			tInfoIndex++;
 
 			indices[baseIndex + 3] = (i+1) * _numVertsPerRow + j;
@@ -306,11 +358,11 @@ bool Terrain::computeIndices()
 			tInfo[tInfoIndex].first = (i+1) * _numVertsPerRow + j;
 			tInfo[tInfoIndex].second =  i   * _numVertsPerRow + j + 1;
 			tInfo[tInfoIndex].third = (i+1) * _numVertsPerRow + j + 1;
-
+#ifdef ONDBG
 			sprintf(dbg,"The %d tri: first:%d,second:%d,thrid:%d\n",tInfoIndex,
 			tInfo[tInfoIndex].first,tInfo[tInfoIndex].second,tInfo[tInfoIndex].third);
 			OutputDebugString(dbg);
-
+#endif
 			tInfoIndex++;
 
 			// next quad

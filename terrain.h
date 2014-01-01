@@ -61,6 +61,8 @@ public:
 	int	  getTriangleNumber();
 	int   pickTriangle(HWND hwnd);
 	bool  changeHeight(int triangleIndex);
+	bool  averageHeight(int triangleIndex);
+
 	VerticesInfo getVerticesInfo(int index);
 	TriangleInfo getTriangleInfo(int index);
 private:
