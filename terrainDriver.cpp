@@ -15,6 +15,7 @@
 #include "camera.h"
 #include "fps.h"
 #include "Terrian\resource.h"
+#define TERRAIN_NUM 9
 //
 // Globals
 //
@@ -27,7 +28,7 @@ int triIndex = -1;
 Terrain* TheTerrain = 0;
 //TODO:在这里改成fly模式
 Camera   TheCamera(Camera::AIRCRAFT);
-
+D3DXVECTOR3 lightDirection(0.0f, 1.0f, 0.0f);
 FPSCounter* FPS = 0;
 
 //
@@ -39,12 +40,59 @@ bool Setup()
 	// Create the terrain.
 	//
 
-	//光照
-	D3DXVECTOR3 lightDirection(0.0f, 1.0f, 0.0f);
 	/* 
 		加载地形，加载的时候读入地形高度，此时没有绘制。
 	*/
-	TheTerrain = new Terrain(Device, "E:\\Class\\Direct3DX\\Terrain\\heightmap1.raw", 256, 256, 5, 0.5f);
+	std::string FileNames[9];
+	OPENFILENAME ofn;
+	CHAR szOpenFileNames[80*MAX_PATH];
+	CHAR szPath[MAX_PATH];
+	CHAR szFileName[80*MAX_PATH];
+    CHAR* p;
+	int nLen = 0;
+	ZeroMemory( &ofn, sizeof(ofn) );
+	ofn.Flags = OFN_EXPLORER | OFN_ALLOWMULTISELECT;
+	ofn.lStructSize = sizeof(ofn);
+	ofn.lpstrFile = szOpenFileNames;
+	ofn.nMaxFile = sizeof(szOpenFileNames);
+	ofn.lpstrFile[0] = '\0';
+	ofn.lpstrFilter = TEXT("All Files(*.*)\0*.*\0");
+	if( GetOpenFileName( &ofn ) )
+	{  
+		//把第一个文件名前的复制到szPath,即:
+		//如果只选了一个文件,就复制到最后一个'\'
+		//如果选了多个文件,就复制到第一个NULL字符
+		lstrcpyn(szPath, szOpenFileNames, ofn.nFileOffset );
+		//当只选了一个文件时,下面这个NULL字符是必需的.
+		//这里不区别对待选了一个和多个文件的情况
+		szPath[ ofn.nFileOffset ] = '\0';
+		nLen = lstrlen(szPath);
+
+		if( szPath[nLen-1] != '\\' )   //如果选了多个文件,则必须加上'\\'
+		{
+			lstrcat(szPath, TEXT("\\"));
+		}
+
+		p = szOpenFileNames + ofn.nFileOffset; //把指针移到第一个文件
+		int i = 0;
+		
+		while( *p && i < TERRAIN_NUM)
+		{   
+			ZeroMemory(szFileName, sizeof(szFileName));
+			lstrcpy(szFileName, szPath);  //给文件名加上路径  
+			lstrcat(szFileName, p);    //加上文件名  
+			std::string *tmpString = new std::string(szFileName);
+			FileNames[i] = *tmpString;
+			MessageBox(0,FileNames[i].c_str(),"title",0);
+			i++;
+			p += lstrlen(p) +1;     //移至下一个文件
+		}
+	}
+	//到此为止之，没问题
+
+
+	//问题应该出在构造函数这儿，其他算法都没大毛病，就是那个readrawFile!
+	TheTerrain = new Terrain(Device, FileNames, 64 * 3 , 64 * 3, 5, 0.5f);
 	
 	TheTerrain->genTexture(&lightDirection);
 
@@ -154,7 +202,9 @@ bool Display(float timeDelta)
 
 		//这段代码是用原来的The Terrain画
 	    if( TheTerrain )
+		{
 			TheTerrain->draw(&I, true); 
+		}
 		if( FPS )
 			FPS->render(0xffffffff, timeDelta);
 

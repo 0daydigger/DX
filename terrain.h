@@ -42,7 +42,7 @@ public:
 
 	Terrain(
 		IDirect3DDevice9* device,
-		std::string heightmapFileName, 
+		std::string heightmapFileNames[], 
 		int numVertsPerRow,  
 		int numVertsPerCol, 
 		int cellSpacing,    // space between cells
@@ -86,7 +86,7 @@ private:
 	std::vector<int> _heightmap; //存储地形点用的东西
 
 	// helper methods
-	bool  readRawFile(std::string fileName);
+	bool  readRawFile(std::string fileNames[]);
 	bool  computeVertices();
 	bool  computeIndices();
 	bool  computeMeshVertices();

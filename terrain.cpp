@@ -13,15 +13,17 @@
 #include "terrain.h"
 #include <fstream>
 #include <cmath>
-
+#ifndef TERRAIN_NUM
+#define TERRAIN_NUM 9
+#endif
 const DWORD Terrain::TerrainVertex::FVF = D3DFVF_XYZ | D3DFVF_TEX1; //带材质的顶点格式
 
 Terrain::Terrain(IDirect3DDevice9* device,	//设备
-				 std::string heightmapFileName, //高度图名称
+				 std::string heightmapFileNames[], //高度图名称
 				 int numVertsPerRow,  //每行点数
 				 int numVertsPerCol,  //每列点数
 				 int cellSpacing,   //跨度
-				 float heightScale) //高度范围 
+				 float heightScale)//高度范围
 {
 	_device         = device;
 	_numVertsPerRow = numVertsPerRow;
@@ -48,7 +50,7 @@ Terrain::Terrain(IDirect3DDevice9* device,	//设备
 	//vInfo保存的是顶点信息，tInfo保存的是三角形信息，这样tInfo和vInfo就构成了一个三角形反查表。
 
 	// load heightmap
-	if( !readRawFile(heightmapFileName) )
+	if( !readRawFile(heightmapFileNames) )
 	{
 		::MessageBox(0, "readRawFile - FAILED", 0, 0);
 		::PostQuitMessage(0);
@@ -132,16 +134,19 @@ bool Terrain::averageHeight(int triangleIndex)
 	{
 		v[triangle.first]._y = ( v[triangle.second]._y + v[triangle.third]._y ) / 2.0f;
 		vInfo[triangle.first].y = v[triangle.first]._y;
+		_heightmap[triangle.first] = vInfo[triangle.first].y;
 	}
 	if ( theHighestPoint == triangle.second )
 	{
 		v[triangle.second]._y = ( v[triangle.first]._y + v[triangle.third]._y ) / 2.0f;
 		vInfo[triangle.second].y = v[triangle.second]._y;
+		_heightmap[triangle.second] = vInfo[triangle.second].y;
 	}
 	if ( theHighestPoint == triangle.third)
 	{
 		v[triangle.third]._y = ( v[triangle.second]._y + v[triangle.first]._y ) / 2.0f;
 		vInfo[triangle.third].y = v[triangle.third]._y;
+		_heightmap[triangle.third] = vInfo[triangle.third].y;
 	}
 	/*
 	v[triangle.first]._y += sin(D3DX_PI/4);
@@ -165,12 +170,20 @@ bool Terrain::changeHeight(int triangleIndex)
 	
 	TerrainVertex* v = 0;
 	_vb->Lock(0, 0, (void**)&v, 0);
+
 	v[triangle.first]._y += sin(D3DX_PI/4);
 	vInfo[triangle.first].y = v[triangle.first]._y;
+	_heightmap[triangle.first] = vInfo[triangle.first].y;
+
 	v[triangle.second]._y += sin(D3DX_PI/6);
 	vInfo[triangle.second].y = v[triangle.first]._y;
+	_heightmap[triangle.second] = vInfo[triangle.second].y;
+
 	v[triangle.third]._y += sin(D3DX_PI/6);
 	vInfo[triangle.third].y = v[triangle.first]._y;
+	_heightmap[triangle.third] = vInfo[triangle.third].y;
+
+
 	_vb->Unlock();
 	return true;
 }
@@ -542,7 +555,8 @@ float Terrain::computeShade(int cellRow, int cellCol, D3DXVECTOR3* directionToLi
 	return cosine;
 }
 
-bool Terrain::readRawFile(std::string fileName)
+//这里要改，传进来的应该是一个string数组
+bool Terrain::readRawFile(std::string fileNames[])
 {
 	// Restriction: RAW file dimensions must be >= to the
 	// dimensions of the terrain.  That is a 128x128 RAW file
@@ -550,26 +564,50 @@ bool Terrain::readRawFile(std::string fileName)
 	// 128x128 vertices.
 
 	// A height for each vertex
-	std::vector<BYTE> in( _numVertices );
+	
+	int eachIncrement = _numVertices / TERRAIN_NUM;
+	std::vector<BYTE> in( eachIncrement );
+	//临时数组
+	BYTE* tmpHeightMap = (BYTE*)malloc( sizeof(char) * _numVertices);
+	memset(tmpHeightMap,0,sizeof(char)* _numVertices);
 
-	std::ifstream inFile(fileName.c_str(), std::ios_base::binary);
+	_heightmap.resize( _numVertices);
+	/*  这里是线性排列模拟的二维数组，因此应该是，嗯，怎么讲呢……
+		1、分别读入9个地形的数据（线性）
+		2、合并第一行，合并第二行，合并第三行，每行大小都是64，重复 64 * 3遍（列数）
+		其实反而倒不如开一个临时文件来的简单。
+	*/
+	//这里要注意的是_heightMap的大小不是char，而是int
 
-	if( inFile == 0 )
-		return false;
+	//std::ifstream inFile(fileNames[i].c_str(), std::ios_base::binary);
+	int heightMapIndex = 0;
+	for(int i = 0 ; i < 3 ; i++)
+	{
+		for(int k = 0; k < 64; k++ )
+		{
+			//每次读64，读到哪了。
+			for(int j = 0; j < 3; j++)
+			{
+				int index = i * 3 + j; //该读第几张图
+				std::ifstream inFile(fileNames[index].c_str(), std::ios_base::binary);
+				if ( inFile == 0 )
+					return false;
+				//千万别忘了这个，重新定位地址
+				inFile.seekg( k * 64, std::ios::beg);
+				inFile.read((char*)&tmpHeightMap[heightMapIndex],64);
+				heightMapIndex = heightMapIndex + 64;//每次偏移量挪动64次
+				inFile.close();
+			}
+		}
+	}
 
-	inFile.read(
-		(char*)&in[0], // buffer
-		in.size());// number of bytes to read into buffer
-
-	inFile.close();
-
-	// copy BYTE vector to int vector
-	_heightmap.resize( _numVertices );
-
-	for(int i = 0; i < in.size(); i++)
-		_heightmap[i] = in[i];
-
-	return true;
+	//拷贝到高度图中
+	for(int i = 0 ; i < _numVertices ; i++)
+	{
+		_heightmap[i] = tmpHeightMap[i];
+	}
+	//释放
+	free(tmpHeightMap);
 }
 
 float Terrain::getHeight(float x, float z)
@@ -658,7 +696,9 @@ bool Terrain::draw(D3DXMATRIX* world, bool drawTris)
 		_device->SetIndices(_ib);
 		
 		/*	这里是设置纹理用的	*/
-	//	_device->SetTexture(0, _tex);
+		D3DXVECTOR3 lightDir(0.0f, 1.0f, 0.0f);
+		genTexture(&lightDir);
+		_device->SetTexture(0, _tex);
 
 		// turn off lighting since we're lighting it ourselves
 		_device->SetRenderState(D3DRS_LIGHTING, false);
